@@ -1,27 +1,38 @@
+
 from langchain_ollama.llms import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever
+from langchain_core.documents import Document
+from vector import retriever 
 
-model = OllamaLLM(model="llama3.2")
+model = OllamaLLM(model="llama3")
 
 template = """
-You are an exeprt in answering questions about a specific store/restaurant
+You are an expert in answering questions about a specific store/restaurant based on the reviews provided.
 
-Here are some relevant reviews: {reviews}
+Here are some relevant reviews:
+{reviews}
 
-Here is the question to answer: {question}
+Based only on the reviews above, answer the following question: {question}
 
-If you didn't find any review similar to the question, answer the question by saying: Sorry, there are no reviews mentioned this information.
-Don't answer any religion, politics or any not related questions.
+If the reviews don't contain information to answer the question, you must say: "Sorry, there are no reviews that mention this information."
+Do not answer any questions related to religion, politics, or other unrelated topics.
 """
 prompt = ChatPromptTemplate.from_template(template)
+
 chain = prompt | model
 
-while True:
-    question = input("Ask your question or type q to quit: ")
-    if question == "q":
-        break
-    
+def get_response(question: str) -> tuple[str, list[Document]]:
+    """
+    Takes a user question, retrieves relevant reviews, and generates an answer.
+
+    Args:
+        question: The user's question.
+
+    Returns:
+        A tuple containing the generated answer (str) and the list of retrieved reviews (list[Document]).
+    """
     reviews = retriever.invoke(question)
-    result = chain.invoke({"reviews": reviews, "question": question})
-    print(result)
+    
+    answer = chain.invoke({"reviews": reviews, "question": question})
+    
+    return answer, reviews
